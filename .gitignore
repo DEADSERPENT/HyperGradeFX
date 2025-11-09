@@ -1,0 +1,304 @@
+# HyperGradeFX - Blender Addon
+# .gitignore - Version Control Exclusions
+
+# =============================================================================
+# PYTHON CACHE & BYTECODE
+# =============================================================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# =============================================================================
+# BLENDER SPECIFIC
+# =============================================================================
+# Backup files
+*.blend1
+*.blend2
+*.blend@
+
+# Autosave files
+autosave_*.blend
+
+# Temporary Blender files
+*.tmp
+*.temp
+
+# Blender crash files
+*.crash.txt
+
+# User preferences (don't commit personal settings)
+userpref.blend
+
+# =============================================================================
+# OPERATING SYSTEM FILES
+# =============================================================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+.nfs*
+
+# =============================================================================
+# IDE & EDITOR FILES
+# =============================================================================
+# VSCode
+.vscode/
+*.code-workspace
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+*.swp
+*.swo
+*~
+
+# Emacs
+\#*\#
+.\#*
+*.elc
+
+# Atom
+.atom/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# =============================================================================
+# LOGS & DATABASES
+# =============================================================================
+*.log
+*.sql
+*.sqlite
+*.db
+
+# Local log directory
+logs/
+*.log.*
+
+# =============================================================================
+# TESTING & COVERAGE
+# =============================================================================
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+nosetests.xml
+test-results/
+*.test
+
+# =============================================================================
+# VIRTUAL ENVIRONMENTS
+# =============================================================================
+venv/
+ENV/
+env/
+.venv/
+.ENV/
+.env/
+env.bak/
+venv.bak/
+
+# pipenv
+Pipfile.lock
+
+# poetry
+poetry.lock
+
+# =============================================================================
+# PROJECT SPECIFIC
+# =============================================================================
+# User-generated preset files (only keep default presets in repo)
+user_presets/
+custom_presets/
+
+# Exported frames/renders
+exports/
+renders/
+output/
+frames/
+
+# Temporary processing files
+temp/
+tmp/
+
+# User configuration overrides (keep defaults only)
+config_local.json
+settings_local.json
+
+# Large test files
+test_renders/
+sample_footage/
+*.blend
+
+# FFmpeg binaries (users should install separately)
+ffmpeg/
+ffmpeg.exe
+ffprobe.exe
+
+# =============================================================================
+# DOCUMENTATION (KEEP ALL .md FILES)
+# =============================================================================
+# All markdown documentation files are tracked
+# Including: README.md, INSTALL.md, EXAMPLES.md, CHANGELOG.md, etc.
+# No .md files are excluded
+
+# =============================================================================
+# SECURITY & SECRETS
+# =============================================================================
+.env
+.env.local
+.env.*.local
+secrets.json
+credentials.json
+*.key
+*.pem
+*.cert
+
+# =============================================================================
+# COMPRESSED FILES & ARCHIVES
+# =============================================================================
+*.zip
+*.tar.gz
+*.rar
+*.7z
+*.bz2
+*.gz
+
+# Exception: Keep release archives if in releases/ folder
+!releases/*.zip
+
+# =============================================================================
+# MEDIA FILES (for testing only - don't commit large media)
+# =============================================================================
+# Images
+*.exr
+*.hdr
+*.tga
+*.dds
+
+# Videos (testing only)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.flv
+
+# Audio
+*.wav
+*.mp3
+*.ogg
+*.flac
+
+# Exception: Keep small sample/icon files
+!icons/*.png
+!docs/images/*.png
+!docs/images/*.jpg
+
+# =============================================================================
+# MISCELLANEOUS
+# =============================================================================
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Rope project settings
+.ropeproject
+
+# Node modules (if using any JS tools)
+node_modules/
+
+# macOS package manager
+.homebrew/
+
+# End of .gitignore

@@ -1,0 +1,89 @@
+{
+  "name": "Stylized Teal & Orange",
+  "category": "LOOK_DEVELOPMENT",
+  "description": "Classic cinematic teal and orange color grading",
+  "version": "1.0",
+  "author": "DEADSERPENT",
+  "node_data": {
+    "inputs": [
+      {
+        "name": "Image",
+        "type": "NodeSocketColor"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "Image",
+        "type": "NodeSocketColor"
+      }
+    ],
+    "nodes": [
+      {
+        "name": "node_0",
+        "type": "CompositorNodeColorBalance",
+        "label": "Shadow Teal",
+        "location": [0, 0],
+        "properties": {}
+      },
+      {
+        "name": "node_1",
+        "type": "CompositorNodeColorBalance",
+        "label": "Highlight Orange",
+        "location": [250, 0],
+        "properties": {}
+      },
+      {
+        "name": "node_2",
+        "type": "CompositorNodeHueSat",
+        "label": "Boost Saturation",
+        "location": [500, 0],
+        "properties": {}
+      },
+      {
+        "name": "node_3",
+        "type": "CompositorNodeBrightContrast",
+        "label": "Contrast Boost",
+        "location": [750, 0],
+        "properties": {}
+      }
+    ],
+    "links": [
+      {
+        "from_node": "GROUP_INPUT",
+        "to_node": "node_0",
+        "from_socket": 0,
+        "to_socket": 1
+      },
+      {
+        "from_node": "node_0",
+        "to_node": "node_1",
+        "from_socket": 0,
+        "to_socket": 1
+      },
+      {
+        "from_node": "node_1",
+        "to_node": "node_2",
+        "from_socket": 0,
+        "to_socket": 1
+      },
+      {
+        "from_node": "node_2",
+        "to_node": "node_3",
+        "from_socket": 0,
+        "to_socket": 0
+      },
+      {
+        "from_node": "node_3",
+        "to_node": "GROUP_OUTPUT",
+        "from_socket": 0,
+        "to_socket": 0
+      }
+    ]
+  },
+  "settings": {
+    "shadow_color": [0.2, 0.4, 0.5],
+    "highlight_color": [1.0, 0.6, 0.3],
+    "saturation": 1.2,
+    "contrast": 1.15
+  }
+}

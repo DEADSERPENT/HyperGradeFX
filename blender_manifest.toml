@@ -1,0 +1,51 @@
+# Blender Extension Manifest for HyperGradeFX
+# This manifest is required for Blender 4.2+ Extension Platform
+
+schema_version = "1.0.0"
+
+id = "hypergradefx"
+name = "HyperGradeFX"
+tagline = "Professional-grade post-production suite"
+version = "1.0.0"
+type = "add-on"
+
+
+# Maintainer information
+maintainer = "DEADSERPENT <deadserpent14@gmail.com>"
+license = ["SPDX:GPL-3.0-or-later"]
+
+# Blender version compatibility (Extensions require 4.2.0+)
+blender_version_min = "4.2.0"
+
+# Website and documentation
+website = "https://github.com/DEADSERPENT/hypergradefx"
+
+# Tags for discoverability (must be from official list)
+tags = ["Compositing", "Render", "Node"]
+
+# Wheels (dependencies) - uncomment and modify if you have Python dependencies
+# wheels = [
+#     "./wheels/example_package-1.0-py3-none-any.whl",
+# ]
+
+[permissions]
+files = "Import/export presets and render output"
+network = "Download presets and check for updates"
+
+# Build settings - exclude unnecessary files from the .zip
+[build]
+paths_exclude_pattern = [
+    "__pycache__/",
+    "*.pyc",
+    "*.pyo",
+    ".git/",
+    ".gitignore",
+    "*.md",  # Excludes all .md files including BUILD_EXTENSION.md
+    "validate_addon.py",
+    "requirements.txt",
+    ".vscode/",
+    ".idea/",
+    "*.zip",
+    "build_extension.ps1",
+    "build_extension.sh",
+]

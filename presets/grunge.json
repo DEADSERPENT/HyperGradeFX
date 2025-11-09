@@ -1,0 +1,89 @@
+{
+  "name": "Grunge Look",
+  "category": "STYLIZED",
+  "description": "Gritty, desaturated aesthetic with crushed blacks and grain",
+  "version": "1.0",
+  "author": "DEADSERPENT",
+  "node_data": {
+    "inputs": [
+      {
+        "name": "Image",
+        "type": "NodeSocketColor"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "Image",
+        "type": "NodeSocketColor"
+      }
+    ],
+    "nodes": [
+      {
+        "name": "node_0",
+        "type": "CompositorNodeHueSat",
+        "label": "Desaturate",
+        "location": [0, 0],
+        "properties": {}
+      },
+      {
+        "name": "node_1",
+        "type": "CompositorNodeBrightContrast",
+        "label": "Crush Blacks",
+        "location": [250, 0],
+        "properties": {}
+      },
+      {
+        "name": "node_2",
+        "type": "CompositorNodeCurveRGB",
+        "label": "Tone Curve",
+        "location": [500, 0],
+        "properties": {}
+      },
+      {
+        "name": "node_3",
+        "type": "CompositorNodeColorBalance",
+        "label": "Faded Look",
+        "location": [750, 0],
+        "properties": {}
+      }
+    ],
+    "links": [
+      {
+        "from_node": "GROUP_INPUT",
+        "to_node": "node_0",
+        "from_socket": 0,
+        "to_socket": 1
+      },
+      {
+        "from_node": "node_0",
+        "to_node": "node_1",
+        "from_socket": 0,
+        "to_socket": 0
+      },
+      {
+        "from_node": "node_1",
+        "to_node": "node_2",
+        "from_socket": 0,
+        "to_socket": 1
+      },
+      {
+        "from_node": "node_2",
+        "to_node": "node_3",
+        "from_socket": 0,
+        "to_socket": 1
+      },
+      {
+        "from_node": "node_3",
+        "to_node": "GROUP_OUTPUT",
+        "from_socket": 0,
+        "to_socket": 0
+      }
+    ]
+  },
+  "settings": {
+    "saturation": 0.6,
+    "contrast": 1.3,
+    "blacks_crushed": true,
+    "grain_amount": 0.05
+  }
+}

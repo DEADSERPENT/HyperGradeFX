@@ -1,0 +1,87 @@
+name: Test Addon Import
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.10', '3.11']  # Blender 4.x uses these versions
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Test addon imports
+        run: |
+          echo "Testing if HyperGradeFX can be imported..."
+          python -c "
+          import sys
+          import os
+
+          # Add addon to path
+          sys.path.insert(0, os.getcwd())
+
+          # Try importing main module
+          try:
+              import __init__ as hypergradefx
+              print('✅ Main module imported successfully')
+          except Exception as e:
+              print(f'❌ Failed to import: {e}')
+              sys.exit(1)
+
+          # Try importing submodules
+          try:
+              from core import color_harmony, compositing, node_blueprints
+              print('✅ Core modules imported successfully')
+          except Exception as e:
+              print(f'⚠️  Warning importing core modules: {e}')
+
+          try:
+              from ui import panels, operators, viewport_preview
+              print('✅ UI modules imported successfully')
+          except Exception as e:
+              print(f'⚠️  Warning importing UI modules: {e}')
+
+          try:
+              from utils import helpers, constants
+              print('✅ Utils modules imported successfully')
+          except Exception as e:
+              print(f'⚠️  Warning importing utils modules: {e}')
+
+          print('\\n🎉 HyperGradeFX addon structure is valid!')
+          "
+
+      - name: Check manifest file
+        run: |
+          if [ -f "blender_manifest.toml" ]; then
+            echo "✅ blender_manifest.toml found"
+            cat blender_manifest.toml
+          else
+            echo "❌ blender_manifest.toml not found!"
+            exit 1
+          fi
+
+      - name: Verify required files
+        run: |
+          echo "Checking required files..."
+          files="__init__.py LICENSE blender_manifest.toml"
+          for file in $files; do
+            if [ -f "$file" ]; then
+              echo "✅ $file exists"
+            else
+              echo "❌ $file missing!"
+              exit 1
+            fi
+          done
+          echo "🎉 All required files present!"

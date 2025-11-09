@@ -1,0 +1,100 @@
+name: Build and Release Addon
+
+on:
+  release:
+    types: [created]
+  workflow_dispatch:  # Allows manual triggering
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "release" ]; then
+            VERSION=${{ github.event.release.tag_name }}
+          else
+            VERSION="dev-$(date +%Y%m%d-%H%M%S)"
+          fi
+          echo "VERSION=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "Building version: ${VERSION#v}"
+
+      - name: Update version in manifest
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          sed -i "s/version = \".*\"/version = \"$VERSION\"/" blender_manifest.toml
+          echo "Updated manifest version to: $VERSION"
+
+      - name: Create build directory
+        run: |
+          mkdir -p build/hypergradefx
+
+      - name: Copy addon files
+        run: |
+          # Copy all files except excluded ones
+          rsync -av \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='__pycache__' \
+            --exclude='*.pyc' \
+            --exclude='*.pyo' \
+            --exclude='*.md' \
+            --exclude='*.zip' \
+            --exclude='validate_addon.py' \
+            --exclude='build_extension.ps1' \
+            --exclude='build_extension.sh' \
+            --exclude='build' \
+            ./ build/hypergradefx/
+
+      - name: Create ZIP archive
+        run: |
+          cd build
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          ZIP_NAME="hypergradefx-${VERSION}.zip"
+          zip -r "../${ZIP_NAME}" hypergradefx/
+          cd ..
+          echo "Created: ${ZIP_NAME}"
+          ls -lh ${ZIP_NAME}
+          echo "ZIP_NAME=${ZIP_NAME}" >> $GITHUB_ENV
+
+      - name: Calculate ZIP hash
+        run: |
+          sha256sum ${{ env.ZIP_NAME }} > ${{ env.ZIP_NAME }}.sha256
+          cat ${{ env.ZIP_NAME }}.sha256
+
+      - name: Upload to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ${{ env.ZIP_NAME }}
+            ${{ env.ZIP_NAME }}.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload as Artifact
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: hypergradefx-${{ steps.get_version.outputs.VERSION }}
+          path: ${{ env.ZIP_NAME }}
+          retention-days: 30
+
+      - name: Summary
+        run: |
+          echo "## ✅ Build Complete!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
+          echo "**File:** ${{ env.ZIP_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Size:** $(ls -lh ${{ env.ZIP_NAME }} | awk '{print $5}')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "📦 ZIP file attached to release" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "📦 ZIP file available in workflow artifacts" >> $GITHUB_STEP_SUMMARY
+          fi

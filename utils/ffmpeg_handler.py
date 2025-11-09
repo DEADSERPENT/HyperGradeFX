@@ -188,5 +188,7 @@ class FFmpegHandler:
 
 def get_ffmpeg_handler():
     """Get FFmpeg handler with preferences"""
-    prefs = bpy.context.preferences.addons[__package__.split('.')[0]].preferences
+    # Get base package name (remove subdirectory from package path)
+    base_package = __package__.rsplit('.', 1)[0] if '.' in __package__ else __package__
+    prefs = bpy.context.preferences.addons[base_package].preferences
     return FFmpegHandler(prefs.ffmpeg_path)

@@ -22,10 +22,15 @@ def draw_safe_area_overlay(self, context):
     if not hgfx.safe_area_enabled:
         return
 
+    # Get the region
+    region = context.region
+    if not region:
+        return
+
     # Get render resolution
     render = scene.render
-    width = render.resolution_x
-    height = render.resolution_y
+    width = region.width
+    height = region.height
 
     # Calculate safe area dimensions
     if hgfx.safe_area_type == 'ACTION':
@@ -38,17 +43,15 @@ def draw_safe_area_overlay(self, context):
     safe_width = width * safe_percentage
     safe_height = height * safe_percentage
 
-    # Calculate positions (centered)
+    # Calculate positions (centered) in pixel coordinates
     left = (width - safe_width) / 2
     right = left + safe_width
     bottom = (height - safe_height) / 2
     top = bottom + safe_height
 
-    # Normalize to viewport coordinates (0-1)
-    # This is simplified - actual implementation would need proper viewport transformation
+    # Draw rectangle outline using pixel coordinates
     shader = gpu.shader.from_builtin('UNIFORM_COLOR')
 
-    # Draw rectangle outline
     vertices = (
         (left, bottom),
         (right, bottom),
@@ -60,12 +63,17 @@ def draw_safe_area_overlay(self, context):
 
     batch = batch_for_shader(shader, 'LINES', {"pos": vertices}, indices=indices)
 
+    # Enable proper blend mode for overlay
+    gpu.state.blend_set('ALPHA')
+
     shader.bind()
-    shader.uniform_float("color", (1.0, 1.0, 0.0, 0.5))  # Yellow overlay
+    shader.uniform_float("color", (1.0, 0.8, 0.0, 0.8))  # Yellow overlay
 
     gpu.state.line_width_set(2.0)
     batch.draw(shader)
     gpu.state.line_width_set(1.0)
+
+    gpu.state.blend_set('NONE')
 
 
 class HGFX_OT_EnableLivePreview(Operator):
@@ -78,7 +86,11 @@ class HGFX_OT_EnableLivePreview(Operator):
 
         _preview_enabled = True
 
-        # Add draw handler
+        # Enable compositor if not already enabled
+        if not context.scene.use_nodes:
+            context.scene.use_nodes = True
+
+        # Add draw handler for overlays
         if _draw_handler is None:
             _draw_handler = bpy.types.SpaceNodeEditor.draw_handler_add(
                 draw_safe_area_overlay,
@@ -88,14 +100,41 @@ class HGFX_OT_EnableLivePreview(Operator):
             )
 
         # Enable viewer node auto-update
-        if context.scene.use_nodes:
+        if context.scene.use_nodes and context.scene.node_tree:
+            viewer_found = False
             for node in context.scene.node_tree.nodes:
                 if node.type == 'VIEWER':
                     context.scene.node_tree.nodes.active = node
+                    viewer_found = True
+                    break
+
+            if not viewer_found:
+                # Create a viewer node if none exists
+                from ..utils.helpers import get_compositor_node_tree, create_node
+
+                node_tree = get_compositor_node_tree(context.scene)
+
+                # Find render layer
+                render_layer = None
+                for node in node_tree.nodes:
+                    if node.type == 'R_LAYERS':
+                        render_layer = node
+                        break
+
+                if render_layer:
+                    viewer = create_node(
+                        node_tree,
+                        'CompositorNodeViewer',
+                        location=(render_layer.location.x + 300, render_layer.location.y),
+                        label="Live Preview"
+                    )
+                    # Connect render layer to viewer
+                    node_tree.links.new(render_layer.outputs['Image'], viewer.inputs['Image'])
+                    node_tree.nodes.active = viewer
 
         self.report({'INFO'}, "Live preview enabled")
 
-        # Force redraw
+        # Force redraw all areas
         for area in context.screen.areas:
             area.tag_redraw()
 
@@ -140,7 +179,9 @@ class HGFX_PT_LivePreviewPanel(Panel):
         layout = self.layout
         scene = context.scene
 
-        prefs = context.preferences.addons[__package__.split('.')[0]].preferences
+        # Get base package name (remove subdirectory from package path)
+        base_package = __package__.rsplit('.', 1)[0] if '.' in __package__ else __package__
+        prefs = context.preferences.addons[base_package].preferences
 
         box = layout.box()
         box.prop(prefs, "enable_live_preview", text="Auto-Update Preview")
@@ -186,6 +227,137 @@ class HGFX_OT_PixelInspector(Operator):
     def invoke(self, context, event):
         context.window_manager.modal_handler_add(self)
         return {'RUNNING_MODAL'}
+
+
+class HGFX_OT_RefreshPreview(Operator):
+    """Refresh compositor preview"""
+    bl_idname = "hgfx.refresh_preview"
+    bl_label = "Refresh Preview"
+
+    def execute(self, context):
+        # Force compositor update
+        if context.scene.use_nodes and context.scene.node_tree:
+            # Find and activate viewer node
+            for node in context.scene.node_tree.nodes:
+                if node.type == 'VIEWER':
+                    context.scene.node_tree.nodes.active = node
+                    break
+
+        # Force redraw all areas
+        for area in context.screen.areas:
+            area.tag_redraw()
+
+        self.report({'INFO'}, "Preview refreshed")
+        return {'FINISHED'}
+
+
+class HGFX_OT_TogglePreviewMode(Operator):
+    """Toggle between before/after preview modes"""
+    bl_idname = "hgfx.toggle_preview_mode"
+    bl_label = "Toggle Preview Mode"
+
+    def execute(self, context):
+        scene = context.scene
+
+        # This would toggle between original and graded views
+        # Implementation: Could use node mute states or viewer switching
+        if not scene.use_nodes:
+            self.report({'WARNING'}, "Enable compositing first")
+            return {'CANCELLED'}
+
+        node_tree = scene.node_tree
+
+        # Find viewer nodes and toggle between them
+        viewers = [n for n in node_tree.nodes if n.type == 'VIEWER']
+
+        if len(viewers) >= 2:
+            # Toggle active viewer
+            current_active = node_tree.nodes.active
+            current_idx = viewers.index(current_active) if current_active in viewers else -1
+            next_idx = (current_idx + 1) % len(viewers)
+            node_tree.nodes.active = viewers[next_idx]
+            self.report({'INFO'}, f"Switched to viewer: {viewers[next_idx].label or viewers[next_idx].name}")
+        else:
+            self.report({'INFO'}, "Create multiple viewer nodes for comparison")
+
+        # Force redraw
+        for area in context.screen.areas:
+            area.tag_redraw()
+
+        return {'FINISHED'}
+
+
+class HGFX_OT_CreatePreviewSplit(Operator):
+    """Create split-screen preview comparison"""
+    bl_idname = "hgfx.create_preview_split"
+    bl_label = "Create Split Preview"
+    bl_options = {'REGISTER', 'UNDO'}
+
+    split_position: bpy.props.FloatProperty(
+        name="Split Position",
+        description="Position of the split line",
+        default=0.5,
+        min=0.0,
+        max=1.0,
+        subtype='FACTOR'
+    )
+
+    def execute(self, context):
+        from ..utils.helpers import get_compositor_node_tree, create_node
+
+        node_tree = get_compositor_node_tree(context.scene)
+
+        # Find render layers node
+        render_layer = None
+        for node in node_tree.nodes:
+            if node.type == 'R_LAYERS':
+                render_layer = node
+                break
+
+        if not render_layer:
+            self.report({'WARNING'}, "No render layer found")
+            return {'CANCELLED'}
+
+        # Create a split viewer setup using mask
+        # Create a box mask for split
+        box_mask = create_node(
+            node_tree,
+            'CompositorNodeBoxMask',
+            location=(render_layer.location.x + 300, render_layer.location.y - 200),
+            label="Split Mask"
+        )
+        box_mask.x = self.split_position
+        box_mask.width = 1.0 - self.split_position
+
+        # Create mix node for split comparison
+        mix = create_node(
+            node_tree,
+            'CompositorNodeMixRGB',
+            location=(render_layer.location.x + 600, render_layer.location.y),
+            label="Split Mix"
+        )
+        mix.blend_type = 'MIX'
+
+        # Create viewer
+        viewer = create_node(
+            node_tree,
+            'CompositorNodeViewer',
+            location=(render_layer.location.x + 900, render_layer.location.y),
+            label="Split Viewer"
+        )
+
+        # Connect nodes
+        node_tree.links.new(box_mask.outputs['Mask'], mix.inputs['Fac'])
+        node_tree.links.new(render_layer.outputs['Image'], mix.inputs[1])
+        node_tree.links.new(mix.outputs['Image'], viewer.inputs['Image'])
+
+        node_tree.nodes.active = viewer
+
+        self.report({'INFO'}, "Created split preview (connect 'After' image to Mix input 2)")
+        return {'FINISHED'}
+
+    def invoke(self, context, event):
+        return context.window_manager.invoke_props_dialog(self)
 
 
 class HGFX_OT_CreateScopeDisplay(Operator):
@@ -242,6 +414,9 @@ class HGFX_OT_CreateScopeDisplay(Operator):
 classes = (
     HGFX_OT_EnableLivePreview,
     HGFX_OT_DisableLivePreview,
+    HGFX_OT_RefreshPreview,
+    HGFX_OT_TogglePreviewMode,
+    HGFX_OT_CreatePreviewSplit,
     HGFX_PT_LivePreviewPanel,
     HGFX_OT_PixelInspector,
     HGFX_OT_CreateScopeDisplay,

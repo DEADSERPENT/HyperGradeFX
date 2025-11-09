@@ -238,7 +238,9 @@ def calculate_node_depth(node, node_tree, visited=None):
 
 def get_preferences():
     """Get HyperGradeFX preferences"""
-    return bpy.context.preferences.addons[__package__.split('.')[0]].preferences
+    # Get base package name (remove subdirectory from package path)
+    base_package = __package__.rsplit('.', 1)[0] if '.' in __package__ else __package__
+    return bpy.context.preferences.addons[base_package].preferences
 
 
 def get_preset_directory():
@@ -268,3 +270,139 @@ def create_frame_node(node_tree, label, color=(0.4, 0.4, 0.4)):
     frame.use_custom_color = True
     frame.color = color
     return frame
+
+
+def enable_compositor_preview(context):
+    """
+    Enable compositor preview features for real-time feedback
+    - Enables compositor backdrop
+    - Sets up viewer node
+    - Forces UI update
+    """
+    import bpy
+
+    # Enable compositor use_nodes if not already
+    if not context.scene.use_nodes:
+        context.scene.use_nodes = True
+
+    # Enable backdrop in all node editor areas
+    for area in context.screen.areas:
+        if area.type == 'NODE_EDITOR':
+            for space in area.spaces:
+                if space.type == 'NODE_EDITOR':
+                    space.backdrop_channels = 'COLOR'  # Show color channels
+                    space.show_backdrop = True  # Enable backdrop
+                    area.tag_redraw()
+
+    # Force redraw
+    for area in context.screen.areas:
+        area.tag_redraw()
+
+
+def activate_viewer_node(node_tree, viewer_node):
+    """
+    Activate a viewer node to show its output in the backdrop
+
+    Args:
+        node_tree: The compositor node tree
+        viewer_node: The viewer node to activate
+    """
+    if viewer_node and viewer_node.type == 'VIEWER':
+        node_tree.nodes.active = viewer_node
+
+        # Force update
+        viewer_node.update()
+
+
+def connect_to_composite_output(node_tree, output_node, output_socket='Image'):
+    """
+    Connect a node to the Composite output for final rendering
+
+    Args:
+        node_tree: The compositor node tree
+        output_node: The node whose output should go to Composite
+        output_socket: The socket name on the output node (default: 'Image')
+
+    Returns:
+        The Composite node
+    """
+    # Find or create Composite output node
+    composite = None
+    for node in node_tree.nodes:
+        if node.type == 'COMPOSITE':
+            composite = node
+            break
+
+    if not composite:
+        # Create composite node if it doesn't exist
+        composite = create_node(
+            node_tree,
+            'CompositorNodeComposite',
+            location=(output_node.location.x + 300, output_node.location.y),
+            label="Composite Output"
+        )
+
+    # Connect the output node to composite
+    try:
+        node_tree.links.new(
+            output_node.outputs[output_socket],
+            composite.inputs['Image']
+        )
+    except Exception as e:
+        print(f"Error connecting to composite: {e}")
+
+    return composite
+
+
+def setup_realtime_preview(context, node_tree, final_node, final_socket='Image'):
+    """
+    Complete setup for real-time preview
+    Combines all preview features: backdrop, viewer, and composite output
+
+    Args:
+        context: Blender context
+        node_tree: The compositor node tree
+        final_node: The final node in your effect chain
+        final_socket: The output socket name (default: 'Image')
+
+    Returns:
+        tuple: (viewer_node, composite_node)
+    """
+    # Enable backdrop
+    enable_compositor_preview(context)
+
+    # Find or create viewer node
+    viewer = None
+    for node in node_tree.nodes:
+        if node.type == 'VIEWER' and 'Preview' in node.label:
+            viewer = node
+            break
+
+    if not viewer:
+        viewer = create_node(
+            node_tree,
+            'CompositorNodeViewer',
+            location=(final_node.location.x + 250, final_node.location.y),
+            label="HGFX Preview"
+        )
+
+    # Connect final node to viewer
+    try:
+        node_tree.links.new(
+            final_node.outputs[final_socket],
+            viewer.inputs['Image']
+        )
+    except Exception as e:
+        print(f"Error connecting to viewer: {e}")
+
+    # Activate the viewer
+    activate_viewer_node(node_tree, viewer)
+
+    # Connect to composite output for final rendering
+    composite = connect_to_composite_output(node_tree, final_node, final_socket)
+
+    # Force redraw
+    for area in context.screen.areas:
+        area.tag_redraw()
+
+    return viewer, composite

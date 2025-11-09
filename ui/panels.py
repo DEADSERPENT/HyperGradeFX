@@ -14,7 +14,6 @@ class HGFX_PT_MainPanel(Panel):
     bl_space_type = 'NODE_EDITOR'
     bl_region_type = 'UI'
     bl_category = "HyperGradeFX"
-    bl_context = "compositor"
 
     def draw(self, context):
         layout = self.layout

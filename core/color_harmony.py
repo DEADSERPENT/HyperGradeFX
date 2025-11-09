@@ -7,7 +7,8 @@ import bpy
 from bpy.types import Operator
 import colorsys
 from ..utils.helpers import (get_compositor_node_tree, create_node, connect_nodes,
-                             calculate_color_harmony, mix_colors, create_color_ramp)
+                             calculate_color_harmony, mix_colors, create_color_ramp,
+                             setup_realtime_preview)
 from ..utils.constants import COLOR_HARMONY_ANGLES
 
 
@@ -53,9 +54,13 @@ class HGFX_OT_ApplyColorHarmony(Operator):
         harmony_colors = calculate_color_harmony(self.base_color, self.mode)
 
         # Create color harmony node setup
-        self.create_harmony_setup(node_tree, self.base_color, harmony_colors, self.strength)
+        final_node = self.create_harmony_setup(node_tree, self.base_color, harmony_colors, self.strength)
 
-        self.report({'INFO'}, f"Applied {self.mode} color harmony")
+        # Setup real-time preview
+        if final_node:
+            setup_realtime_preview(context, node_tree, final_node)
+
+        self.report({'INFO'}, f"Applied {self.mode} color harmony - Check backdrop for preview!")
         return {'FINISHED'}
 
     def create_harmony_setup(self, node_tree, base_color, harmony_colors, strength):
@@ -123,14 +128,8 @@ class HGFX_OT_ApplyColorHarmony(Operator):
             connect_nodes(node_tree, input_node, 'Image', mix_node, 1)
             connect_nodes(node_tree, color_balance, 'Image', mix_node, 2)
 
-        # Create viewer for preview
-        viewer = create_node(
-            node_tree,
-            'CompositorNodeViewer',
-            location=(x_start + x_spacing * 3, y_start),
-            label="Harmony Preview"
-        )
-        connect_nodes(node_tree, mix_node, 'Image', viewer, 'Image')
+        # Return the final mix node for preview setup
+        return mix_node
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
@@ -180,7 +179,7 @@ class HGFX_OT_CreateSplitToneEffect(Operator):
         scene = context.scene
         node_tree = get_compositor_node_tree(scene)
 
-        self.create_split_tone_setup(
+        final_node = self.create_split_tone_setup(
             node_tree,
             self.shadow_color,
             self.highlight_color,
@@ -188,7 +187,11 @@ class HGFX_OT_CreateSplitToneEffect(Operator):
             self.strength
         )
 
-        self.report({'INFO'}, "Created split tone effect")
+        # Setup real-time preview
+        if final_node:
+            setup_realtime_preview(context, node_tree, final_node)
+
+        self.report({'INFO'}, "Created split tone effect - Check backdrop for preview!")
         return {'FINISHED'}
 
     def create_split_tone_setup(self, node_tree, shadow_color, highlight_color,
@@ -275,14 +278,8 @@ class HGFX_OT_CreateSplitToneEffect(Operator):
         connect_nodes(node_tree, input_node, 'Image', final_mix, 1)
         connect_nodes(node_tree, tone_mix, 'Image', final_mix, 2)
 
-        # Create viewer
-        viewer = create_node(
-            node_tree,
-            'CompositorNodeViewer',
-            location=(x + 800, y),
-            label="Split Tone Preview"
-        )
-        connect_nodes(node_tree, final_mix, 'Image', viewer, 'Image')
+        # Return final node for preview setup
+        return final_mix
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
@@ -298,12 +295,16 @@ class HGFX_OT_CreateColorGradeStack(Operator):
         scene = context.scene
         node_tree = get_compositor_node_tree(scene)
 
-        self.create_grade_stack(node_tree)
+        final_node = self.create_grade_stack(node_tree, context)
 
-        self.report({'INFO'}, "Created color grading stack")
+        # Setup real-time preview
+        if final_node:
+            setup_realtime_preview(context, node_tree, final_node)
+
+        self.report({'INFO'}, "Created color grading stack - Check backdrop for preview!")
         return {'FINISHED'}
 
-    def create_grade_stack(self, node_tree):
+    def create_grade_stack(self, node_tree, context):
         """Create a professional color grading stack"""
 
         x_start = 400
@@ -318,7 +319,7 @@ class HGFX_OT_CreateColorGradeStack(Operator):
                 break
 
         if not input_node:
-            return
+            return None
 
         current_x = x_start
         current_input = input_node
@@ -407,14 +408,8 @@ class HGFX_OT_CreateColorGradeStack(Operator):
         )
         connect_nodes(node_tree, current_input, current_socket, final_hue_sat, 'Image')
 
-        # Create viewer
-        viewer = create_node(
-            node_tree,
-            'CompositorNodeViewer',
-            location=(current_x + x_spacing, y),
-            label="Grade Preview"
-        )
-        connect_nodes(node_tree, final_hue_sat, 'Image', viewer, 'Image')
+        # Return final node for preview setup
+        return final_hue_sat
 
 
 class HGFX_OT_ApplyLookPreset(Operator):
